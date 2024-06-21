@@ -1,6 +1,7 @@
 package com.cisco.josouthe;
 
 import com.appdynamics.agent.api.AppdynamicsAgent;
+import com.appdynamics.agent.api.EntryTypes;
 import com.appdynamics.agent.api.ExitCall;
 import com.appdynamics.agent.api.ExitTypes;
 import com.appdynamics.agent.api.Transaction;
@@ -45,8 +46,9 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
     public Object onMethodBegin (java.lang.Object invokedObject, java.lang.String className, java.lang.String methodName, java.lang.Object[] paramValues) {
         Transaction transaction = AppdynamicsAgent.getTransaction();
         if( transaction instanceof NoOpTransaction ) {
+            transaction = AppdynamicsAgent.startTransaction("ISO8583-Placeholder", null, EntryTypes.POJO, true);
             getLogger().info("WARNING, no transaction active, but backend called");
-            return null;
+            //return null;
         }
         ExitCall exitCall = transaction.startExitCall(getPropertyMap(paramValues[0]), "ISO8583-message", ExitTypes.CUSTOM_ASYNC, true);
         getReflectiveObject(paramValues[0], setReflector, (String) CORRELATION_HEADER_KEY, (String)exitCall.getCorrelationHeader());
