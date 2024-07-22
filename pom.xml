@@ -65,9 +65,6 @@
           </includes>
             <archive>
                 <addMavenDescriptor>false</addMavenDescriptor>
-                <manifestEntries>
-                    <Plugin-Classes>com.cisco.josouthe.ISO8583OutboundInterceptor,com.cisco.josouthe.ISO8583InboundInterceptor</Plugin-Classes>
-                </manifestEntries>
             </archive>
 		  <outputDirectory>${basedir}</outputDirectory>
         </configuration>
