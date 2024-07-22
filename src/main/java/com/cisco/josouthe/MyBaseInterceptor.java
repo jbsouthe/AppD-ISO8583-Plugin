@@ -10,7 +10,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 public abstract class MyBaseInterceptor extends AGenericInterceptor {
-    protected static final Object CORRELATION_HEADER_KEY = "singularityheader";
+    protected static final Object CORRELATION_HEADER_KEY = "40684.138.499871";
     protected Set<DataScope> dataScopes = null;
     protected static final String DISABLE_ANALYTICS_COLLECTION_PROPERTY = "disablePluginAnalytics";
 
