@@ -18,7 +18,7 @@ import java.util.Map;
 
 public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
 
-    IReflector setReflector, getStringReflector, getISOHeaderReflector; //ISOMsg
+    IReflector setReflector, getStringReflector, getISOHeaderReflector, getMTIReflector, getValueReflector; //ISOMsg
 
     IReflector getDestinationReflector, getSourceReflector; //ISOHeader
 
@@ -30,6 +30,8 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
         setReflector = makeInvokeInstanceMethodReflector("set", "java.lang.String", "java.lang.String");
         getStringReflector = makeInvokeInstanceMethodReflector("getString", "java.lang.String");
         getISOHeaderReflector = makeInvokeInstanceMethodReflector("getISOHeader");
+        getMTIReflector = makeInvokeInstanceMethodReflector("getMTI");
+        getValueReflector = makeInvokeInstanceMethodReflector("getValue", "java.lang.String");
 
         getDestinationReflector = makeInvokeInstanceMethodReflector("getDestination");
         getSourceReflector = makeInvokeInstanceMethodReflector("getSource");
@@ -46,11 +48,12 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
     public Object onMethodBegin (java.lang.Object invokedObject, java.lang.String className, java.lang.String methodName, java.lang.Object[] paramValues) {
         Transaction transaction = AppdynamicsAgent.getTransaction();
         if( transaction instanceof NoOpTransaction ) {
-            transaction = AppdynamicsAgent.startTransaction("ISO8583-Placeholder", null, EntryTypes.POJO, true);
+            //transaction = AppdynamicsAgent.startTransaction("ISO8583-Placeholder", null, EntryTypes.POJO, true);
             getLogger().info("WARNING, no transaction active, but backend called");
-            //return null;
+            return null;
         }
-        ExitCall exitCall = transaction.startExitCall(getPropertyMap(paramValues[0]), "ISO8583-message", ExitTypes.CUSTOM_ASYNC, true);
+        Object possibleMessage = paramValues[2];
+        ExitCall exitCall = transaction.startExitCall(getPropertyMap(possibleMessage), "ISO8583-message", ExitTypes.CUSTOM_ASYNC, true);
         getReflectiveObject(paramValues[0], setReflector, (String) CORRELATION_HEADER_KEY, (String)exitCall.getCorrelationHeader());
         return new State(transaction, exitCall);
     }
@@ -58,9 +61,14 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
     private Map<String, String> getPropertyMap (Object message) {
         Map<String,String> map = new HashMap<>();
         Object isoHeader = getReflectiveObject(message, getISOHeaderReflector);
+        if( isoHeader == null ) {
+            getLogger().info("WARNING: getISOHeader() returned null on object " + String.valueOf(message));
+        }
         map.put("Source", getReflectiveString(isoHeader, getSourceReflector, "Unknown"));
         map.put("Destination", getReflectiveString(isoHeader, getDestinationReflector, "Unknown"));
         map.put("Type", "ISO8583");
+        map.put("MTI", getReflectiveString(message, getMTIReflector, "Unknown"));
+
         return map;
     }
 
@@ -82,9 +90,9 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
         List<Rule> rules = new ArrayList<Rule>();
 
         rules.add(new Rule.Builder(
-                "org.jboss.netty.channel.Channel")
-                .classMatchType(SDKClassMatchType.IMPLEMENTS_INTERFACE)
-                .methodMatchString("write")
+                "com.bellid.vacq.iso8583.netty.NettyISOEncoder")
+                .classMatchType(SDKClassMatchType.MATCHES_CLASS)
+                .methodMatchString("encode")
                 .methodStringMatchType(SDKStringMatchType.EQUALS)
                 .build()
         );
