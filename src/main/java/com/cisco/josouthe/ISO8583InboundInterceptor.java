@@ -26,7 +26,9 @@ public class ISO8583InboundInterceptor extends MyBaseInterceptor {
     public Object onMethodBegin (Object invokedObject, String className, String methodName, Object[] paramValues){
         Object iosMsg = paramValues[0];
         Object iMessageSource = paramValues[1];
-        String correlationHeader = (String) getReflectiveObject(iosMsg, getStringReflector, CORRELATION_HEADER_KEY);
+        String correlationHeader = null;
+        if( "true".equalsIgnoreCase(getProperty(ISO8583_CORRELATION_ENABLED)))
+            correlationHeader = (String) getReflectiveObject(iosMsg, getStringReflector, ISO8583_CORRELATION_FIELD);
         Transaction transaction = AppdynamicsAgent.startTransactionAndServiceEndPoint("ISO8583 Transaction", correlationHeader, "ISO8583 Transaction", EntryTypes.POJO, true);
         return transaction;
     }

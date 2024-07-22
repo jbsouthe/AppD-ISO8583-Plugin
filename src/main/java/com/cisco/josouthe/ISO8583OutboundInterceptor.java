@@ -54,7 +54,8 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
         }
         Object possibleMessage = paramValues[2];
         ExitCall exitCall = transaction.startExitCall(getPropertyMap(possibleMessage), "ISO8583-message", ExitTypes.CUSTOM_ASYNC, true);
-        getReflectiveObject(paramValues[0], setReflector, (String) CORRELATION_HEADER_KEY, (String)exitCall.getCorrelationHeader());
+        if( "true".equalsIgnoreCase(getProperty(ISO8583_CORRELATION_ENABLED)))
+            getReflectiveObject(paramValues[0], setReflector, (String) getProperty(ISO8583_CORRELATION_ENABLED), (String)exitCall.getCorrelationHeader());
         return new State(transaction, exitCall);
     }
 

@@ -16,11 +16,13 @@ import java.util.*;
 
 public abstract class MyBaseInterceptor extends AGenericInterceptor {
     protected static final Object CORRELATION_HEADER_KEY = AppdynamicsAgent.TRANSACTION_CORRELATION_HEADER;
+    protected static final String ISO8583_CORRELATION_ENABLED = "iso8583-correlation-enabled";
+    protected static final String ISO8583_CORRELATION_FIELD = "iso8583-correlation-field";
     protected boolean initialized = false;
     protected Set<DataScope> dataScopes = null;
     protected Set<DataScope> snapshotDatascopeOnly = null;
     protected static final String DISABLE_ANALYTICS_COLLECTION_PROPERTY = "disablePluginAnalytics";
-    protected static final String PLUGIN_PROPERTIES_FILE_NAME = "CustomPlugin.properties";
+    protected static final String PLUGIN_PROPERTIES_FILE_NAME = "ISO8583.properties";
     private Properties properties;
 
     public MyBaseInterceptor() {
@@ -64,6 +66,8 @@ public abstract class MyBaseInterceptor extends AGenericInterceptor {
             for ( String customPropertyKey : getListOfCustomProperties().keySet() ) {
                 this.properties.setProperty( customPropertyKey, getListOfCustomProperties().get(customPropertyKey) );
             }
+            this.properties.setProperty(ISO8583_CORRELATION_ENABLED, "false"); //default correlation enabled, false
+            this.properties.setProperty(ISO8583_CORRELATION_FIELD, "127"); //default correlation field
             File configFile = new File(this.getAgentPluginDirectory() + System.getProperty("file.separator", "/") + PLUGIN_PROPERTIES_FILE_NAME);
             InputStream is = null;
             if (configFile.canRead()) {
@@ -78,6 +82,10 @@ public abstract class MyBaseInterceptor extends AGenericInterceptor {
 
     protected Map<String,String> getListOfCustomProperties() {
         return new HashMap<String,String>();
+    }
+
+    protected String getProperty( String key ) {
+        return this.properties.getProperty(key);
     }
 
     protected boolean isAnalyticsEnabledForClass( String className ) {
