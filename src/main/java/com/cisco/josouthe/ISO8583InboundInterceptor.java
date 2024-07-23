@@ -13,12 +13,23 @@ import java.util.List;
 
 public class ISO8583InboundInterceptor extends MyBaseInterceptor {
 
-    IReflector getStringReflector; //ISOMsg
+    private MTIDecoder mtiDecoder = new MTIDecoder();
+
+    IReflector setReflector, getStringReflector, getISOHeaderReflector, getMTIReflector, getValueReflector; //ISOMsg
+
+    IReflector getDestinationReflector, getSourceReflector; //ISOHeader
 
     public ISO8583InboundInterceptor () {
         getLogger().info(String.format("Initializing ISO8583InboundInterceptor for ISO8583 Messages"));
 
+        setReflector = makeInvokeInstanceMethodReflector("set", "java.lang.String", "java.lang.String");
         getStringReflector = makeInvokeInstanceMethodReflector("getString", "java.lang.String");
+        getISOHeaderReflector = makeInvokeInstanceMethodReflector("getISOHeader");
+        getMTIReflector = makeInvokeInstanceMethodReflector("getMTI");
+        getValueReflector = makeInvokeInstanceMethodReflector("getValue", "java.lang.String");
+
+        getDestinationReflector = makeInvokeInstanceMethodReflector("getDestination");
+        getSourceReflector = makeInvokeInstanceMethodReflector("getSource");
     }
 
 
@@ -26,10 +37,30 @@ public class ISO8583InboundInterceptor extends MyBaseInterceptor {
     public Object onMethodBegin (Object invokedObject, String className, String methodName, Object[] paramValues){
         Object iosMsg = paramValues[0];
         Object iMessageSource = paramValues[1];
+
+        String mti = (String) getReflectiveObject(iosMsg, getMTIReflector);
+        String mtiClass = "Unknown";
+        String mtiVersion = "Unknown";
+        String mtiFunction = "Unknown";
+        String mtiOrigin = "Unknown";
+        if( mti != null ) {
+            mtiClass = mtiDecoder.getClass(mti);
+            mtiVersion = mtiDecoder.getVersion(mti);
+            mtiFunction = mtiDecoder.getFunction(mti);
+            mtiOrigin = mtiDecoder.getOrigin(mti);
+        }
+
         String correlationHeader = null;
         if( "true".equalsIgnoreCase(getProperty(ISO8583_CORRELATION_ENABLED)))
             correlationHeader = (String) getReflectiveObject(iosMsg, getStringReflector, ISO8583_CORRELATION_FIELD);
-        Transaction transaction = AppdynamicsAgent.startTransactionAndServiceEndPoint("ISO8583 Transaction", correlationHeader, "ISO8583 Transaction", EntryTypes.POJO, true);
+        String btName = String.format("ISO8583 %s Transaction",mtiClass);
+        Transaction transaction = AppdynamicsAgent.startTransactionAndServiceEndPoint(btName, correlationHeader, btName, EntryTypes.POJO, true);
+        transaction.collectData("ISO8583_Origin", mtiOrigin, this.dataScopes);
+        transaction.collectData("ISO8583_Function", mtiFunction, this.dataScopes);
+        transaction.collectData("ISO8583_Version", mtiVersion, this.dataScopes);
+        transaction.collectData("ISO8583_Class", mtiClass, this.dataScopes);
+        transaction.collectData("ISO8583_Description", mtiDecoder.getDescription(mti), this.dataScopes);
+        transaction.collectData("ISO8583_Transaction_Amount", (String) getReflectiveObject(iosMsg, getStringReflector, "4"), this.dataScopes);
         return transaction;
     }
 
@@ -42,16 +73,6 @@ public class ISO8583InboundInterceptor extends MyBaseInterceptor {
     @Override
     public List<Rule> initializeRules () {
         List<Rule> rules = new ArrayList<Rule>();
-
-        /*
-        rules.add(new Rule.Builder(
-                "com.bellid.vacq.iso8583.netty.NettyISODecoder")
-                .classMatchType(SDKClassMatchType.MATCHES_CLASS)
-                .methodMatchString("decode")
-                .methodStringMatchType(SDKStringMatchType.EQUALS)
-                .build()
-        );
-         */
 
         rules.add(new Rule.Builder(
                 "com.bellid.vacq.iso8583.common.ISOProcessor")

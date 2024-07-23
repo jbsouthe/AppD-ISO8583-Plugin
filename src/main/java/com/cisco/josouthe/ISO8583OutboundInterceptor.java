@@ -18,6 +18,7 @@ import java.util.Map;
 
 public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
 
+    private MTIDecoder mtiDecoder = new MTIDecoder();
     IReflector setReflector, getStringReflector, getISOHeaderReflector, getMTIReflector, getValueReflector; //ISOMsg
 
     IReflector getDestinationReflector, getSourceReflector; //ISOHeader
@@ -53,9 +54,26 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
             return null;
         }
         Object possibleMessage = paramValues[2];
-        ExitCall exitCall = transaction.startExitCall(getPropertyMap(possibleMessage), "ISO8583-message", ExitTypes.CUSTOM_ASYNC, true);
+        String mti = (String) getReflectiveObject(possibleMessage, getMTIReflector);
+        String mtiClass = "Unknown";
+        String mtiVersion = "Unknown";
+        String mtiFunction = "Unknown";
+        String mtiOrigin = "Unknown";
+        if( mti != null ) {
+            mtiClass = mtiDecoder.getClass(mti);
+            mtiVersion = mtiDecoder.getVersion(mti);
+            mtiFunction = mtiDecoder.getFunction(mti);
+            mtiOrigin = mtiDecoder.getOrigin(mti);
+        }
+        ExitCall exitCall = transaction.startExitCall(getPropertyMap(possibleMessage), String.format("ISO8583-%s-message", mtiClass), ExitTypes.CUSTOM_ASYNC, true);
         if( "true".equalsIgnoreCase(getProperty(ISO8583_CORRELATION_ENABLED)))
             getReflectiveObject(paramValues[0], setReflector, (String) getProperty(ISO8583_CORRELATION_ENABLED), (String)exitCall.getCorrelationHeader());
+        transaction.collectData("ISO8583_Origin", mtiOrigin, this.dataScopes);
+        transaction.collectData("ISO8583_Function", mtiFunction, this.dataScopes);
+        transaction.collectData("ISO8583_Version", mtiVersion, this.dataScopes);
+        transaction.collectData("ISO8583_Class", mtiClass, this.dataScopes);
+        transaction.collectData("ISO8583_Description", mtiDecoder.getDescription(mti), this.dataScopes);
+        transaction.collectData("ISO8583_Transaction_Amount", (String) getReflectiveObject(possibleMessage, getStringReflector, "4"), this.dataScopes);
         return new State(transaction, exitCall);
     }
 
