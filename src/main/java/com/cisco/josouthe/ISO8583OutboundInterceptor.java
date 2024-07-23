@@ -108,6 +108,7 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
             this.exitCall = exitCall;
             this.transaction = transaction;
             this.channelFuture = channelFuture;
+            this.setName("AppD-ISO8583-Wait-Thread");
         }
 
         @Override
