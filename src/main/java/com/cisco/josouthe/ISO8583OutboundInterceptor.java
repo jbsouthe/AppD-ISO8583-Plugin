@@ -1,7 +1,6 @@
 package com.cisco.josouthe;
 
 import com.appdynamics.agent.api.AppdynamicsAgent;
-import com.appdynamics.agent.api.EntryTypes;
 import com.appdynamics.agent.api.ExitCall;
 import com.appdynamics.agent.api.ExitTypes;
 import com.appdynamics.agent.api.Transaction;
@@ -95,9 +94,7 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
         if( thrownException != null ) {
             s.transaction.markAsError(String.format("Exit Call threw Exception: '%s' ", thrownException.toString()));
         }
-        ResponseProcessorThread responseProcessorThread = new ResponseProcessorThread(s.exitCall, s.transaction, channelFuture);
-        responseProcessorThread.start();
-
+        s.exitCall.end();
     }
 
     @Override
@@ -114,34 +111,4 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
         return rules;
     }
 
-    public class ResponseProcessorThread extends Thread {
-        private Transaction transaction;
-        private ExitCall exitCall;
-        private Object channelFuture;
-        public ResponseProcessorThread( ExitCall exitCall, Transaction transaction, Object channelFuture ) {
-            this.exitCall = exitCall;
-            this.transaction = transaction;
-            this.channelFuture = channelFuture;
-            this.setName("AppD-ISO8583-Wait-Thread");
-        }
-
-        @Override
-        public void run() {
-            getReflectiveObject(this.channelFuture, awaitUninterruptiblyReflector);
-            boolean isDone = (Boolean) getReflectiveObject(this.channelFuture, isDoneReflector);
-            if(!isDone) {
-                getLogger().info("WARNING: returned from awaitUninterruptible but isDone not true");
-                return;
-            }
-            boolean isCancelled = (Boolean) getReflectiveObject(this.channelFuture, isCancelledReflector);
-            boolean isSuccess = (Boolean) getReflectiveObject(this.channelFuture, isSuccessReflector);
-            if( isCancelled ) {
-                transaction.markAsError("Request cancelled before completion");
-            } else if( !isSuccess ) {
-                Throwable throwable = (Throwable) getReflectiveObject(this.channelFuture, getCauseReflector);
-                transaction.markAsError(String.format("Request ended in error: %s",throwable.toString()));
-            }
-            exitCall.end();
-        }
-    }
 }
