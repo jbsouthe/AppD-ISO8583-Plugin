@@ -65,9 +65,19 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
             mtiFunction = mtiDecoder.getFunction(mti);
             mtiOrigin = mtiDecoder.getOrigin(mti);
         }
-        ExitCall exitCall = transaction.startExitCall(getPropertyMap(possibleMessage), String.format("ISO8583-%s-message", mtiClass), ExitTypes.CUSTOM_ASYNC, true);
+        Map<String, String> propertyMap = new HashMap<>();
+        Object isoHeader = getReflectiveObject(possibleMessage, getISOHeaderReflector);
+        if( isoHeader == null ) {
+            getLogger().info("WARNING: getISOHeader() returned null on object " + String.valueOf(possibleMessage));
+        }
+        propertyMap.put("Source", getReflectiveString(isoHeader, getSourceReflector, "Unknown"));
+        propertyMap.put("Destination", getReflectiveString(isoHeader, getDestinationReflector, "Unknown"));
+        propertyMap.put("Type", "ISO8583");
+        propertyMap.put("Class", mtiClass);
+
+        ExitCall exitCall = transaction.startExitCall( propertyMap, String.format("ISO8583-%s-message", mtiClass), ExitTypes.CUSTOM_ASYNC, true);
         if( "true".equalsIgnoreCase(getProperty(ISO8583_CORRELATION_ENABLED)))
-            getReflectiveObject(paramValues[0], setReflector, (String) getProperty(ISO8583_CORRELATION_ENABLED), (String)exitCall.getCorrelationHeader());
+            getReflectiveObject(paramValues[0], setReflector, (String) getProperty(ISO8583_CORRELATION_FIELD), (String)exitCall.getCorrelationHeader());
         transaction.collectData("ISO8583_Origin", mtiOrigin, this.dataScopes);
         transaction.collectData("ISO8583_Function", mtiFunction, this.dataScopes);
         transaction.collectData("ISO8583_Version", mtiVersion, this.dataScopes);
@@ -75,20 +85,6 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
         transaction.collectData("ISO8583_Description", mtiDecoder.getDescription(mti), this.dataScopes);
         transaction.collectData("ISO8583_Transaction_Amount", (String) getReflectiveObject(possibleMessage, getStringReflector, "4"), this.dataScopes);
         return new State(transaction, exitCall);
-    }
-
-    private Map<String, String> getPropertyMap (Object message) {
-        Map<String,String> map = new HashMap<>();
-        Object isoHeader = getReflectiveObject(message, getISOHeaderReflector);
-        if( isoHeader == null ) {
-            getLogger().info("WARNING: getISOHeader() returned null on object " + String.valueOf(message));
-        }
-        map.put("Source", getReflectiveString(isoHeader, getSourceReflector, "Unknown"));
-        map.put("Destination", getReflectiveString(isoHeader, getDestinationReflector, "Unknown"));
-        map.put("Type", "ISO8583");
-        map.put("MTI", getReflectiveString(message, getMTIReflector, "Unknown"));
-
-        return map;
     }
 
     @Override
