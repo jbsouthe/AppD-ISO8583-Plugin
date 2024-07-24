@@ -5,6 +5,8 @@ ISO8583 AppDynamics Agent Plugin
 
 ISO8583 https://en.wikipedia.org/wiki/ISO_8583 message support for java apm agents. This plugin creates a service endpoint, and business transaction if not active, for inbound messages, and exit calls for out bound messages. It injects the correlation header into the outbound message and looks for one on the inbound message.
 
+![Flowmap Image](doc_images%2FISO8583-transaction-flowmap.png)
+
 Please let us know in the Issues list if anything more is requested or something isn't working as expected.
 
 ## Configuration
