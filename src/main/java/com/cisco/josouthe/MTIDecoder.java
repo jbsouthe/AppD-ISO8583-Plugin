@@ -83,19 +83,19 @@ public class MTIDecoder { //https://en.wikipedia.org/wiki/ISO_8583
     }
 
     public String getFunction( String mti ) {
-        String value = functionMap.get( mti.charAt(2) );
+        String value = functionMap.get( String.valueOf(mti.charAt(2)) );
         if( value == null ) return "Unknown";
         return value;
     }
 
     public String getClass( String mti ) {
-        String value = classMap.get( mti.charAt(1) );
+        String value = classMap.get( String.valueOf(mti.charAt(1)) );
         if( value == null ) return "Unknown";
         return value;
     }
 
     public String getVersion( String mti ) {
-        String value = versionMap.get( mti.charAt(0) );
+        String value = versionMap.get( String.valueOf(mti.charAt(0)) );
         if( value == null ) return "Unknown";
         return value;
     }
