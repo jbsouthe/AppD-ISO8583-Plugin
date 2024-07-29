@@ -49,6 +49,7 @@ public class ISO8583InboundInterceptor extends MyBaseInterceptor {
             mtiFunction = mtiDecoder.getFunction(mti);
             mtiOrigin = mtiDecoder.getOrigin(mti);
         }
+        getLogger().debug(String.format("MTI: %s Class: %s Version: %s Function: %s Origin: %s", mti, mtiClass, mtiVersion, mtiFunction, mtiOrigin));
 
         String correlationHeader = null;
         if( "true".equalsIgnoreCase(getProperty(ISO8583_CORRELATION_ENABLED)))

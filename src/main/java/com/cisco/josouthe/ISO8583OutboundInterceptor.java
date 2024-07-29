@@ -22,7 +22,11 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
 
     IReflector getDestinationReflector, getSourceReflector; //ISOHeader
 
-    IReflector awaitUninterruptiblyReflector, isDoneReflector, isCancelledReflector, isSuccessReflector, getCauseReflector; //ChannelFuture
+    IReflector getRemoteAddressReflector, getLocalAddressReflector; //Channel
+
+    IReflector getInetAddressReflector; //SocketAddress
+
+    IReflector getCanonicalHostNameReflector; //InetAddress
 
     public ISO8583OutboundInterceptor () {
         getLogger().info(String.format("Initializing ISO8583OutboundInterceptor for ISO8583 Messages"));
@@ -36,11 +40,12 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
         getDestinationReflector = makeInvokeInstanceMethodReflector("getDestination");
         getSourceReflector = makeInvokeInstanceMethodReflector("getSource");
 
-        awaitUninterruptiblyReflector = makeInvokeInstanceMethodReflector("awaitUninterruptibly");
-        isDoneReflector = makeInvokeInstanceMethodReflector("isDone"); //boolean
-        isCancelledReflector = makeInvokeInstanceMethodReflector("isCancelled"); //boolean
-        isSuccessReflector = makeInvokeInstanceMethodReflector("isSuccess"); //boolean
-        getCauseReflector = makeInvokeInstanceMethodReflector("getCause"); //Throwable
+        getRemoteAddressReflector = makeInvokeInstanceMethodReflector("getRemoteAddress"); //SocketAddress
+        getLocalAddressReflector = makeInvokeInstanceMethodReflector("getLocalAddress"); //SocketAddress
+
+        getInetAddressReflector = makeInvokeInstanceMethodReflector("getInetAddress");
+
+        getCanonicalHostNameReflector = makeInvokeInstanceMethodReflector("getCanonicalHostName");
     }
 
 
@@ -64,13 +69,12 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
             mtiFunction = mtiDecoder.getFunction(mti);
             mtiOrigin = mtiDecoder.getOrigin(mti);
         }
+        getLogger().debug(String.format("MTI: %s Class: %s Version: %s Function: %s Origin: %s", mti, mtiClass, mtiVersion, mtiFunction, mtiOrigin));
+
         Map<String, String> propertyMap = new HashMap<>();
         Object isoHeader = getReflectiveObject(possibleMessage, getISOHeaderReflector);
-        if( isoHeader == null ) {
-            getLogger().info("WARNING: getISOHeader() returned null on object " + String.valueOf(possibleMessage));
-        }
-        propertyMap.put("Source", getReflectiveString(isoHeader, getSourceReflector, "Unknown"));
-        propertyMap.put("Destination", getReflectiveString(isoHeader, getDestinationReflector, "Unknown"));
+        propertyMap.put("Source", getHostname(getReflectiveObject(isoHeader, getSourceReflector), getReflectiveObject(paramValues[1], getLocalAddressReflector) ));
+        propertyMap.put("Destination", getHostname(getReflectiveObject(isoHeader, getDestinationReflector), getReflectiveObject(paramValues[1], getRemoteAddressReflector) ));
         propertyMap.put("Type", "ISO8583");
         propertyMap.put("Class", mtiClass);
 
@@ -83,7 +87,18 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
         transaction.collectData("ISO8583_Class", mtiClass, this.dataScopes);
         transaction.collectData("ISO8583_Description", mtiDecoder.getDescription(mti), this.dataScopes);
         transaction.collectData("ISO8583_Transaction_Amount", (String) getReflectiveObject(possibleMessage, getStringReflector, "4"), this.dataScopes);
+        transaction.collectData("ISO8583_Source", propertyMap.get("Source"), this.dataScopes);
+        transaction.collectData("ISO8583_Destination", propertyMap.get("Destination"), this.dataScopes);
         return new State(transaction, exitCall);
+    }
+
+    private String getHostname (Object isoHeaderValue, Object socketAddress) {
+        if( isoHeaderValue != null ) return String.valueOf(isoHeaderValue);
+        if( socketAddress != null ) {
+            Object inetAddress = getReflectiveObject(socketAddress, getInetAddressReflector);
+            return getReflectiveString(inetAddress, getCanonicalHostNameReflector, "Unknown");
+        }
+        return "Unknown";
     }
 
     @Override
