@@ -24,7 +24,7 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
 
     IReflector getRemoteAddressReflector, getLocalAddressReflector; //Channel
 
-    IReflector getInetAddressReflector; //SocketAddress
+    IReflector getAddressReflector; //SocketAddress
 
     IReflector getCanonicalHostNameReflector; //InetAddress
 
@@ -43,7 +43,7 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
         getRemoteAddressReflector = makeInvokeInstanceMethodReflector("getRemoteAddress"); //SocketAddress
         getLocalAddressReflector = makeInvokeInstanceMethodReflector("getLocalAddress"); //SocketAddress
 
-        getInetAddressReflector = makeInvokeInstanceMethodReflector("getInetAddress");
+        getAddressReflector = makeInvokeInstanceMethodReflector("getAddress");
 
         getCanonicalHostNameReflector = makeInvokeInstanceMethodReflector("getCanonicalHostName");
     }
@@ -80,7 +80,7 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
 
         ExitCall exitCall = transaction.startExitCall( propertyMap, String.format("ISO8583-%s-message", mtiClass), ExitTypes.CUSTOM_ASYNC, true);
         if( "true".equalsIgnoreCase(getProperty(ISO8583_CORRELATION_ENABLED)))
-            getReflectiveObject(paramValues[0], setReflector, (String) getProperty(ISO8583_CORRELATION_FIELD), (String)exitCall.getCorrelationHeader());
+            getReflectiveObject(possibleMessage, setReflector, (String) getProperty(ISO8583_CORRELATION_FIELD), (String)exitCall.getCorrelationHeader());
         transaction.collectData("ISO8583_Origin", mtiOrigin, this.dataScopes);
         transaction.collectData("ISO8583_Function", mtiFunction, this.dataScopes);
         transaction.collectData("ISO8583_Version", mtiVersion, this.dataScopes);
@@ -95,7 +95,7 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
     private String getHostname (Object isoHeaderValue, Object socketAddress) {
         if( isoHeaderValue != null ) return String.valueOf(isoHeaderValue);
         if( socketAddress != null ) {
-            Object inetAddress = getReflectiveObject(socketAddress, getInetAddressReflector);
+            Object inetAddress = getReflectiveObject(socketAddress, getAddressReflector);
             return getReflectiveString(inetAddress, getCanonicalHostNameReflector, "Unknown");
         }
         return "Unknown";

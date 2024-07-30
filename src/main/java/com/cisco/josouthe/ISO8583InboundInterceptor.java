@@ -53,7 +53,7 @@ public class ISO8583InboundInterceptor extends MyBaseInterceptor {
 
         String correlationHeader = null;
         if( "true".equalsIgnoreCase(getProperty(ISO8583_CORRELATION_ENABLED)))
-            correlationHeader = (String) getReflectiveObject(iosMsg, getStringReflector, ISO8583_CORRELATION_FIELD);
+            correlationHeader = (String) getReflectiveObject(iosMsg, getStringReflector, (String) getProperty(ISO8583_CORRELATION_FIELD));
         String btName = String.format("ISO8583 %s Transaction",mtiClass);
         Transaction transaction = AppdynamicsAgent.startTransactionAndServiceEndPoint(btName, correlationHeader, btName, EntryTypes.POJO, true);
         transaction.collectData("ISO8583_Origin", mtiOrigin, this.dataScopes);
