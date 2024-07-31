@@ -1,6 +1,7 @@
 package com.cisco.josouthe;
 
 import com.appdynamics.agent.api.AppdynamicsAgent;
+import com.appdynamics.agent.api.EntryTypes;
 import com.appdynamics.agent.api.ExitCall;
 import com.appdynamics.agent.api.ExitTypes;
 import com.appdynamics.agent.api.Transaction;
@@ -52,10 +53,12 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
     @Override
     public Object onMethodBegin (java.lang.Object invokedObject, java.lang.String className, java.lang.String methodName, java.lang.Object[] paramValues) {
         Transaction transaction = AppdynamicsAgent.getTransaction();
+        boolean transactionStartedHere=false;
         if( transaction instanceof NoOpTransaction ) {
-            //transaction = AppdynamicsAgent.startTransaction("ISO8583-Placeholder", null, EntryTypes.POJO, true);
-            getLogger().info("WARNING, no transaction active, but backend called");
-            return null;
+            transaction = AppdynamicsAgent.startTransaction("ISO8583-Placeholder", null, EntryTypes.POJO, true);
+            transactionStartedHere=true;
+            getLogger().debug("WARNING, no transaction active, but backend called");
+            //return null;
         }
         Object possibleMessage = paramValues[2];
         String mti = (String) getReflectiveObject(possibleMessage, getMTIReflector);
@@ -75,7 +78,7 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
         Object isoHeader = getReflectiveObject(possibleMessage, getISOHeaderReflector);
         propertyMap.put("Source", getHostname(getReflectiveObject(isoHeader, getSourceReflector), getReflectiveObject(paramValues[1], getLocalAddressReflector) ));
         propertyMap.put("Destination", getHostname(getReflectiveObject(isoHeader, getDestinationReflector), getReflectiveObject(paramValues[1], getRemoteAddressReflector) ));
-        propertyMap.put("Type", "ISO8583");
+        propertyMap.put("Type", mtiVersion);
         propertyMap.put("Class", mtiClass);
 
         ExitCall exitCall = transaction.startExitCall( propertyMap, String.format("ISO8583-%s-message", mtiClass), ExitTypes.CUSTOM_ASYNC, true);
@@ -87,9 +90,18 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
         transaction.collectData("ISO8583_Class", mtiClass, this.dataScopes);
         transaction.collectData("ISO8583_Description", mtiDecoder.getDescription(mti), this.dataScopes);
         transaction.collectData("ISO8583_Transaction_Amount", (String) getReflectiveObject(possibleMessage, getStringReflector, "4"), this.dataScopes);
+        String processingCode = (String) getReflectiveObject(possibleMessage, getStringReflector, "3");
+        String processingCodeDescription = mtiDecoder.getProcessingCodeDescription(mti, processingCode);
+        getLogger().debug(String.format("Lookup for MTI '%s' and Processing Code '%s' equals '%s'",mti, processingCode, processingCodeDescription));
+        transaction.collectData("ISO8583_Transaction_Processing_Code", processingCodeDescription, this.dataScopes);
+        String responseCode = (String) getReflectiveObject(possibleMessage, getStringReflector, "39");
+        String responseCodeDescription = mtiDecoder.getResponseCodeDescription(mti, responseCode);
+        getLogger().debug(String.format("Lookup for MTI '%s' and Response Code '%s' equals '%s'",mti, responseCode, responseCodeDescription));
+        transaction.collectData("ISO8583_Transaction_Response_Code", responseCode, this.dataScopes);
+        transaction.collectData("ISO8583_Transaction_Response_Code_Description", responseCodeDescription, this.dataScopes);
         transaction.collectData("ISO8583_Source", propertyMap.get("Source"), this.dataScopes);
         transaction.collectData("ISO8583_Destination", propertyMap.get("Destination"), this.dataScopes);
-        return new State(transaction, exitCall);
+        return new State(transaction, exitCall, transactionStartedHere);
     }
 
     private String getHostname (Object isoHeaderValue, Object socketAddress) {
@@ -110,6 +122,7 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
             s.transaction.markAsError(String.format("Exit Call threw Exception: '%s' ", thrownException.toString()));
         }
         s.exitCall.end();
+        if( s.startedHere ) s.transaction.end();
     }
 
     @Override

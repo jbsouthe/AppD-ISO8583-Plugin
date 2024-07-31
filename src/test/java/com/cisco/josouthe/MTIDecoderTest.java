@@ -29,4 +29,11 @@ class MTIDecoderTest {
     void getDescription () {
         assert( "Acquirer Financial Request".equals(mtiDecoder.getDescription("0200")));
     }
+
+    @org.junit.jupiter.api.Test
+    void getResponseCodeDescription () {
+        System.out.println(mtiDecoder.getResponseCodeDescription("1200", "950"));
+        assert( "950 violation of business arrangement".equals(mtiDecoder.getResponseCodeDescription("1200", "950")));
+        assert( "Pick-up card, special condition".equals(mtiDecoder.getResponseCodeDescription("0200", "7")));
+    }
 }
