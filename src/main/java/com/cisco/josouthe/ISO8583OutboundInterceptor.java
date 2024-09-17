@@ -55,10 +55,12 @@ public class ISO8583OutboundInterceptor extends MyBaseInterceptor {
         Transaction transaction = AppdynamicsAgent.getTransaction();
         boolean transactionStartedHere=false;
         if( transaction instanceof NoOpTransaction ) {
+            return null;
+            /* placeholder isn't needed, the transaction will be a duplicate if we start this here:
             transaction = AppdynamicsAgent.startTransaction("ISO8583-Placeholder", null, EntryTypes.POJO, true);
             transactionStartedHere=true;
             getLogger().debug("WARNING, no transaction active, but backend called");
-            //return null;
+             */
         }
         Object possibleMessage = paramValues[2];
         String mti = (String) getReflectiveObject(possibleMessage, getMTIReflector);

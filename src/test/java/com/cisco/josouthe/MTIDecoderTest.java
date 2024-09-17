@@ -32,8 +32,8 @@ class MTIDecoderTest {
 
     @org.junit.jupiter.api.Test
     void getResponseCodeDescription () {
-        System.out.println(mtiDecoder.getResponseCodeDescription("1200", "950"));
+        System.out.println(mtiDecoder.getResponseCodeDescription("0210", "06"));
         assert( "950 violation of business arrangement".equals(mtiDecoder.getResponseCodeDescription("1200", "950")));
-        assert( "Pick-up card, special condition".equals(mtiDecoder.getResponseCodeDescription("0200", "7")));
+        assert( "Pick-up card, special condition".equals(mtiDecoder.getResponseCodeDescription("0200", "07")));
     }
 }

@@ -75,16 +75,16 @@ public class MTIDecoder { //https://en.wikipedia.org/wiki/ISO_8583
         this.originMap.put("41","Reserved");
 
         this.responseCode1987Map = new HashMap<>();
-        responseCode1987Map.put("0", "Approved or completed successfully");
-        responseCode1987Map.put("1", "Refer to card issuer");
-        responseCode1987Map.put("2", "Refer to card issuer, special condition");
-        responseCode1987Map.put("3", "Invalid merchant");
-        responseCode1987Map.put("4", "Pick-up card");
-        responseCode1987Map.put("5", "Do not honor");
-        responseCode1987Map.put("6", "Error");
-        responseCode1987Map.put("7", "Pick-up card, special condition");
-        responseCode1987Map.put("8", "Honor with identification");
-        responseCode1987Map.put("9", "Request in progress");
+        responseCode1987Map.put("00", "Approved or completed successfully");
+        responseCode1987Map.put("01", "Refer to card issuer");
+        responseCode1987Map.put("02", "Refer to card issuer, special condition");
+        responseCode1987Map.put("03", "Invalid merchant");
+        responseCode1987Map.put("04", "Pick-up card");
+        responseCode1987Map.put("05", "Do not honor");
+        responseCode1987Map.put("06", "Error");
+        responseCode1987Map.put("07", "Pick-up card, special condition");
+        responseCode1987Map.put("08", "Honor with identification");
+        responseCode1987Map.put("09", "Request in progress");
         responseCode1987Map.put("10", "Approved, partial");
         responseCode1987Map.put("11", "Approved, VIP");
         responseCode1987Map.put("12", "Invalid transaction");
